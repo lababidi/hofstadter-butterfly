@@ -2,14 +2,14 @@ import numpy as np
 import scipy.linalg as linalg
 import matplotlib.pyplot as plt
 
-q_max = 30
+q_max = 50
 
-def  gcd(a,b): return  gcd(b, a%b) if b else a
+def gcd(a,b): return  gcd(b, a%b) if b else a
 def unique(p,q): return gcd(p,q)==1
 def krond(a,b): return (a==b)*1
 
-J1 = 2.0
-J2 = 2.0
+J1 = 1.0
+J2 = 1.0
 res = []
 for q in range(2,q_max):
 	for p in range(1,q):
@@ -25,5 +25,5 @@ for q in range(2,q_max):
 			eigs = np.angle(linalg.eigvals(ee))/np.pi
 			for eig in eigs:
 				res.append((phi,eig))
-#plt.scatter(*zip(*res),s=.2)
-#plt.show()
+plt.scatter(*zip(*res),s=.2)
+plt.show()

@@ -76,9 +76,9 @@ bool unique(int p, int q){
 int main(){
 	//cout<<"Complex"<<I<<endl;
 
-	int q=751,p=1;
+	int q=751,p=1; int kx_max =1;
 	double phi = (double) p / (double) q;
-	for(q=2;q<30;q++){
+	for(q=2;q<60;q++){
 		for(p=1;p<q;p++){
 			if(unique(p,q)){
 				for(int kx_inc=0;kx_inc<kx_max;kx_inc++){
