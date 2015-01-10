@@ -5,12 +5,13 @@
 #include<fstream>
 #include<cmath>
 #include<queue>
+#include<set>
 
 #ifdef __cplusplus
 extern "C"
 {
 #endif
-   #include <cblas.h>
+#include <cblas.h>
 #ifdef __cplusplus
 }
 #endif
@@ -41,10 +42,16 @@ typedef complex<double> complexd;
 #define PI 3.14159265
 complexd I = complexd(0,1);
 
+struct xy{
+    double phi;
+    double energy;
+    bool operator< (const xy& rhs) const{return phi<rhs.phi;};
+};
+
 //void eigenvalues( matrixc& H, matrixc&, int m);
 void eigenvalues( complex<double> a[],int n);
 
-string calcH(int p, int q, int kn, ofstream &f);
+queue<xy> calcH(int p, int q, int kn);
 
 int  gcd(int  a,int  b){return b ? gcd(b, a%b) : a;}
 
@@ -66,12 +73,12 @@ void chop( vector<complex<double> > & v,int n){
 }
 
 void chop( double * v, int n){ 
-    for(int i=0; i<n*n; i++)
+    for(int i=0; i<n; i++)
         chop1(v[i]);
 }
 
 void chop( complex<double> * v, int n){ 
-    for(int i=0; i<n*n; i++)
+    for(int i=0; i<n; i++)
         chop1(v[i]);
 }
 void dbg(const char * c, complex<double> * v, int n){
@@ -83,47 +90,61 @@ void dbg(const char * c, complex<double> * v, int n){
 
 inline double kron(int j, int k){return (double)(j==k);}
 
-bool unique(int p, int q){
-    return (double) p/ (double) q<=.5 && gcd(p, q)==1 ;
+inline bool unique(int p, int q){ return 2* p<=q && gcd(p, q)==1 ; }
+
+void moveEnergy(set<xy> & s, queue<xy> & q){
+    while(!q.empty()){
+        s.insert(q.front());
+        q.pop();
+    }
+}
+
+void printEnergy(set<xy> *energies, int q_max){
+    ostringstream convert;
+    string ff;
+    for(int q=2;q<q_max;q++){
+        for( auto e: energies[q]){
+            convert<<e.phi<<","<<e.energy<<endl;
+            ff+=convert.str();
+        }
+    }
+    ofstream f("but.csv");
+    f<<"x,y"<<endl;
+    f<<ff;
+    f.close();
 }
 
 int main(){
-
-    ofstream f("but.csv");
-    f<<"x,y"<<endl;
-    #pragma omp parallel for
-    for(int q=2;q<37;q++){
-        string ff;
+    int q_max = 11;
+    set<xy> s[q_max];
+#pragma omp parallel for
+    for(int q=2;q<q_max;q++){
         for(int p=1;p<q;p++){
             if(unique(p,q)){
-                ff+=calcH(p,q,20,f);
+                queue<xy> qq = calcH(p,q,20);
+                moveEnergy(s[q], qq);
             }
         }
-        f<<ff;
     }
-    f.close();
+    printEnergy(s, q_max);
     return 0;
 }
 
-struct xy{
-    double phi;
-    double energy;
-    };
 
-string calcH(int p, int q, int kn, ofstream &f){
-    string ff = "";
+queue<xy> calcH(int p, int q, int kn){
     queue<xy> energies;
-    ostringstream convert;
     double kr[kn];
+    double ky, kx;
+    double phi = (double) p / (double) q;
+    complex<double> *a = new complex<double>[q*q];
+
     for(int kk=0; kk<kn; kk++)
         kr[kk]=acos(kk*2.0/kn-1)/q;
 
     for(int kyi=0; kyi<kn;kyi++){
-        double ky = kr[kyi];
+        ky = kr[kyi];
         for(int kxi=0; kxi<kyi; kxi++){
-            double kx = kr[kxi];
-            double phi = (double) p / (double) q;
-            complex<double> *a = new complex<double>[q*q];
+            kx = kr[kxi]; 
             for(int j=0;j<q; j++){
                 for(int i=0;i<q;i++){
                     a[q*j+i]=kron(i,j)*2*cos(ky - 2*PI*(j+1)*phi)
@@ -133,18 +154,13 @@ string calcH(int p, int q, int kn, ofstream &f){
                 }
             }
             eigenvalues(a,q);
-            for(int i=0;i<q;i++){
+            for(int i=0;i<q;i++)
                 energies.push((xy){phi,a[i*q+i].real()});
-                convert<<phi<<","<<a[i*q+i].real()<<endl;
-                convert<<(1-phi)<<","<<a[i*q+i].real()<<endl;
-                ff+=convert.str();
-            }
         }
     }
-    return ff;
+    delete[] a;
+    return energies;
 }
-
-
 
 
 void eigenvalues( complex<double> a[],int n){    
@@ -153,7 +169,7 @@ void eigenvalues( complex<double> a[],int n){
     char jobz='V', uplo='U', conj='C', noop='N';
     int info, lwork = 3*n-1;
     double *rwork = new double[3*n-2],
-             *EN = new double[n];
+           *EN = new double[n];
     complex<double> *work = new complex<double>[lwork];
 
     zheev_(&jobz, &uplo, &n, a, &n, EN, work, &lwork, rwork, &info);
