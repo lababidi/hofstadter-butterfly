@@ -6,6 +6,15 @@
 #include<cmath>
 #include<queue>
 
+#ifdef __cplusplus
+extern "C"
+{
+#endif
+   #include <cblas.h>
+#ifdef __cplusplus
+}
+#endif
+
 using namespace std;
 
 extern "C" void zgeev_( char* jobvl, char* jobvr, int* n, complex<double>* a,
@@ -32,8 +41,8 @@ typedef complex<double> complexd;
 #define PI 3.14159265
 complexd I = complexd(0,1);
 
-//void CallZheev( matrixc& H, matrixc&, int m);
-void CallZheev( complex<double> a[],int n);
+//void eigenvalues( matrixc& H, matrixc&, int m);
+void eigenvalues( complex<double> a[],int n);
 
 string calcH(int p, int q, int kn, ofstream &f);
 
@@ -82,25 +91,28 @@ int main(){
 
     ofstream f("but.csv");
     f<<"x,y"<<endl;
-#pragma omp parallel for
+    #pragma omp parallel for
     for(int q=2;q<37;q++){
         string ff;
         for(int p=1;p<q;p++){
             if(unique(p,q)){
-                //if(p==1 || p==q-1 || p==(q-1)/2) calcH(p,q,16,f);
-                //else calcH(p,q,1,f);
                 ff+=calcH(p,q,20,f);
             }
         }
         f<<ff;
     }
     f.close();
-    //		cout<<H2[0][0]<<" "<<H2[0][1]<<" "<<H2[1][0]<<" "<<H2[1][1]<<endl;
     return 0;
 }
 
+struct xy{
+    double phi;
+    double energy;
+    };
+
 string calcH(int p, int q, int kn, ofstream &f){
     string ff = "";
+    queue<xy> energies;
     ostringstream convert;
     double kr[kn];
     for(int kk=0; kk<kn; kk++)
@@ -111,17 +123,18 @@ string calcH(int p, int q, int kn, ofstream &f){
         for(int kxi=0; kxi<kyi; kxi++){
             double kx = kr[kxi];
             double phi = (double) p / (double) q;
-            matrixc H(q,vectorc(q,0));
-            matrixc H2(q,vectorc(q,0));
             complex<double> *a = new complex<double>[q*q];
             for(int j=0;j<q; j++){
                 for(int i=0;i<q;i++){
-                    /*H[i][j]*/a[q*j+i]		=kron(i,j)*2*cos(ky - 2*PI*(j+1)*phi)
-                        +kron(i+1,j)+kron(i,j+1)+kron(i+q-1,j)*exp(-I*(q*kx))+kron(i,j+q-1)*exp(I*(q*kx));
+                    a[q*j+i]=kron(i,j)*2*cos(ky - 2*PI*(j+1)*phi)
+                        +kron(i+1,j)+kron(i,j+1)
+                        +kron(i+q-1,j)*exp(-I*(q*kx))
+                        +kron(i,j+q-1)*exp(I*(q*kx));
                 }
             }
-            CallZheev(a,q);
+            eigenvalues(a,q);
             for(int i=0;i<q;i++){
+                energies.push((xy){phi,a[i*q+i].real()});
                 convert<<phi<<","<<a[i*q+i].real()<<endl;
                 convert<<(1-phi)<<","<<a[i*q+i].real()<<endl;
                 ff+=convert.str();
@@ -134,41 +147,17 @@ string calcH(int p, int q, int kn, ofstream &f){
 
 
 
-//void CallZheev( matrixc& H1, matrixc& H2, int n){    
-void CallZheev( complex<double> a[],int n){    
-    char jobz, uplo, conj='C', noop='N';
-    int info, nn=n*n, incx=1, lwork = 3*n-1, lwork2 = 4*n, sizecomplex = sizeof(complex<double>);
-    complex<double> alpha = 1, betaz = 0;
-    jobz = 'V'; // V/N indicates that eigenvectors should/should not be calculated
-    uplo = 'U'; // U/L indicated that the upper/lower triangle of the symmetric matrix is stored
-    double *rwork = new double[3*n-2];
-    double *rwork2 = new double[2*n];
-    double *EN = new double[n];
+void eigenvalues( complex<double> a[],int n){    
+    // V/N indicates that eigenvectors should/should not be calculated
+    // U/L indicated that the upper/lower triangle of the symmetric matrix is stored
+    char jobz='V', uplo='U', conj='C', noop='N';
+    int info, lwork = 3*n-1;
+    double *rwork = new double[3*n-2],
+             *EN = new double[n];
     complex<double> *work = new complex<double>[lwork];
-    complex<double> *work2 = new complex<double>[lwork2];
-    //complex<double> *a = new complex<double>[n*n];
-    complex<double> *b = new complex<double>[n*n];
-    complex<double> *c = new complex<double>[n*n];
-    complex<double> *d = new complex<double>[n*n];
-    complex<double> *e = new complex<double>[n*n];
-    complex<double> *f = new complex<double>[n*n];
-    complex<double> *dummy = new complex<double>[n*n];
-    complex<double> *expw = new complex<double>[n];
-    complex<double> * w = new complex<double>[n];	
-    complex<double> * eigs = new complex<double>[n*n];	
-    complex<double> *eomega = new complex<double>[n];
-
-    /*
-       for (int j=0; j < n; j++){ // transpose opration
-       for (int i=0; i < n; i++){
-       a[n*j+i] = H1[j][i];
-       d[n*j+i] = H2[j][i];
-       }
-       }*/
 
     zheev_(&jobz, &uplo, &n, a, &n, EN, work, &lwork, rwork, &info);
     for (int i=0; i < n; i++){ //Pass eigenvectors back, stored as ROWS !!!
-        //H1[i][i]=EN[i];
         a[i*n+i]=EN[i];
     }
     return;
