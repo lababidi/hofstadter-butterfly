@@ -6,6 +6,8 @@
 #include<cmath>
 #include<queue>
 #include<set>
+#include<tuple>
+#include<list>
 
 #ifdef __cplusplus
 extern "C"
@@ -45,7 +47,7 @@ complexd I = complexd(0,1);
 struct xy{
     double phi;
     double energy;
-    bool operator< (const xy& rhs) const{return phi<rhs.phi;};
+    bool operator< (const xy& rhs) const{return tie(phi,energy)<tie(rhs.phi,energy);};
 };
 
 //void eigenvalues( matrixc& H, matrixc&, int m);
@@ -99,6 +101,20 @@ void moveEnergy(set<xy> & s, queue<xy> & q){
     }
 }
 
+void printQ(vector<queue<xy>> energies, int q_max){
+    ostringstream convert;
+    string ff;
+    for(auto e:energies){
+        while(!e.empty()){
+            convert<<e.front().phi<<" "<<e.front().energy<<endl;
+            e.pop();
+            }
+    }
+    ofstream f("but.csv");
+    f<<ff;
+    f.close();
+    }
+
 void printEnergy(set<xy> *energies, int q_max){
     ostringstream convert;
     string ff;
@@ -115,18 +131,20 @@ void printEnergy(set<xy> *energies, int q_max){
 }
 
 int main(){
-    int q_max = 11;
+    int q_max = 21;
     set<xy> s[q_max];
+    vector<queue<xy>> energies(q_max);
 #pragma omp parallel for
     for(int q=2;q<q_max;q++){
         for(int p=1;p<q;p++){
             if(unique(p,q)){
                 queue<xy> qq = calcH(p,q,20);
-                moveEnergy(s[q], qq);
+                energies[q]=qq;
+                //moveEnergy(s[q], qq);
             }
         }
     }
-    printEnergy(s, q_max);
+    printQ(energies, q_max);
     return 0;
 }
 
