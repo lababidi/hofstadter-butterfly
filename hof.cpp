@@ -6,6 +6,7 @@
 #include<cmath>
 #include<queue>
 #include<set>
+#include<unordered_set>
 #include<tuple>
 #include<list>
 
@@ -101,13 +102,14 @@ void moveEnergy(set<xy> & s, queue<xy> & q){
     }
 }
 
-void printQ(vector<queue<xy>> energies, int q_max){
+void printQ(vector<queue<xy>>& energies, int q_max){
     ostringstream convert;
     string ff;
     for(auto e:energies){
         while(!e.empty()){
             convert<<e.front().phi<<" "<<e.front().energy<<endl;
             e.pop();
+            ff+=convert.str();
             }
     }
     ofstream f("but.csv");
@@ -130,21 +132,46 @@ void printEnergy(set<xy> *energies, int q_max){
     f.close();
 }
 
-int main(){
-    int q_max = 21;
+string printS(queue<xy> e){
+    ostringstream convert;
+    unordered_set<string> s;
+    string all;
+    string one;
+    while(!e.empty()){
+        //one=to_string(e.front().phi)+" "+to_string(e.front().energy);
+        //cout<<one<<endl;
+        s.insert(to_string(e.front().phi)+" "+to_string(e.front().energy));
+        e.pop();
+        }
+    for(auto str:s)
+        all+=str+'\n';
+    //cout<<all;
+    return all;
+
+}
+
+int main(int argc, char** argv){
+    if(argc>1)cout<<stoi(argv[1])<<endl;
+    int q_max = argc>1? stoi(argv[1]) : 41 ;
     set<xy> s[q_max];
     vector<queue<xy>> energies(q_max);
+    vector<string> energyS(q_max);
 #pragma omp parallel for
     for(int q=2;q<q_max;q++){
         for(int p=1;p<q;p++){
             if(unique(p,q)){
-                queue<xy> qq = calcH(p,q,20);
-                energies[q]=qq;
+                energyS[q]= printS(  calcH(p,q,20));
+                cout<<p<<" "<<q<<" "<<endl;
                 //moveEnergy(s[q], qq);
             }
         }
     }
-    printQ(energies, q_max);
+    //printQ(energies, q_max);
+    ofstream f("but.csv");
+    for(auto str:energyS){
+        f<<str;
+        }
+    f.close();
     return 0;
 }
 
@@ -156,13 +183,13 @@ queue<xy> calcH(int p, int q, int kn){
     double phi = (double) p / (double) q;
     complex<double> *a = new complex<double>[q*q];
 
-    for(int kk=0; kk<kn; kk++)
-        kr[kk]=acos(kk*2.0/kn-1)/q;
+  //  for(int kk=0; kk<kn; kk++)
+    //    kr[kk]=acos(kk*2.0/kn-1)/q;
 
     for(int kyi=0; kyi<kn;kyi++){
-        ky = kr[kyi];
+        ky = (PI*kyi)/(double)(q*kn);//kr[kyi];
         for(int kxi=0; kxi<kyi; kxi++){
-            kx = kr[kxi]; 
+            kx = (PI*kyi)/(double)(q*kn);//kr[kyi];
             for(int j=0;j<q; j++){
                 for(int i=0;i<q;i++){
                     a[q*j+i]=kron(i,j)*2*cos(ky - 2*PI*(j+1)*phi)
@@ -172,8 +199,10 @@ queue<xy> calcH(int p, int q, int kn){
                 }
             }
             eigenvalues(a,q);
-            for(int i=0;i<q;i++)
+            for(int i=0;i<q;i++){
                 energies.push((xy){phi,a[i*q+i].real()});
+                energies.push((xy){1-phi,a[i*q+i].real()});
+                }
         }
     }
     delete[] a;
@@ -194,6 +223,7 @@ void eigenvalues( complex<double> a[],int n){
     for (int i=0; i < n; i++){ //Pass eigenvectors back, stored as ROWS !!!
         a[i*n+i]=EN[i];
     }
+    delete rwork; delete EN; delete work;
     return;
 }
 

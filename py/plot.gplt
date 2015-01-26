@@ -1,0 +1,3 @@
+set term png
+set output "butterfly.png"
+plot 'butterfly.data' using 0:1 w dots
