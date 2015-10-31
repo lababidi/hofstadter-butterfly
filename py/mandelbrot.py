@@ -1,13 +1,14 @@
-import cmath
+""" A simple Mandlebrot """
 
-def m(b,z):
-	return b*b+z
+def mandlebrot(b, z): #pylint: disable=invalid-name
+    """Computes the mandlebrot"""
+    return b * b + z
 
-z = .075+ .043*1j
-b = z
-dec = 10
-while dec>0:
-	b = m(b,z)
-	print b,abs(b)
-	dec-=1
+Z = .075+ .043*1j
+B = Z
+DEC = 10
+while DEC > 0:
+    B = mandlebrot(B, Z)
+    print B, abs(B)
+    DEC -= 1
 

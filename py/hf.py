@@ -1,11 +1,14 @@
+""" Do hofstader calculations """
+
 import numpy as np
 import scipy.linalg as linalg
 import matplotlib.pyplot as plt
 
-q_max = 50
+Q_MAX = 50
 
 
 def gcd(a, b):
+    """ Calculate the GCD"""
     return gcd(b, a % b) if b else a
 
 
@@ -22,7 +25,7 @@ def main():
     j2 = 1.0
     res = []
     res_unique = set()
-    for q in range(2, q_max):
+    for q in range(2, Q_MAX):
         for p in range(1, q):
             if unique(p, q):
                 kx = 0  # should 0 to 2pi/q
