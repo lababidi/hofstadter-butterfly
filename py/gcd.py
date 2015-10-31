@@ -1,7 +1,21 @@
+"""GCD script"""
+
+from __future__ import print_function
+
+#pylint: disable=no-member
+
 import numpy as np
-import matplotlib.pyplot as plt
-def gcd(a,b): return  gcd(b, a%b) if b else a
-gcd_v = np.vectorize(gcd)
-n = 1000
-a = [[p]*n for p in range(1,n+1)]
-print(gcd_v(a,np.transpose(a)))
+
+def gcd(a, b):
+    """Do the GCD calculation"""
+    return gcd(b, a%b) if b else a
+
+def main():
+    """Run the script"""
+    gcd_v = np.vectorize(gcd)
+    count = 1000
+    array = [[p] * count for p in range(1, count+1)]
+    print(gcd_v(array, np.transpose(array)))
+
+if __name__ == "__main__":
+    main()
