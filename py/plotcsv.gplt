@@ -1,4 +1,9 @@
 set term png
-set output "butterfly.png"
+filelist=system("ls data/*.data")
 set datafile separator ","
-plot 'butterfly.data' using 0:1 w dots
+set key autotitle columnhead
+set yrange [-3.5:3.5]
+do for [filename in filelist] {
+    set output filename.".png"
+    plot filename w dots
+}
